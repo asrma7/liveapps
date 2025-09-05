@@ -1,8 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:ionicons/ionicons.dart';
-import 'screens/sources_page.dart';
-import 'screens/apps_page.dart';
-import 'screens/settings_page.dart';
+import 'package:liveapps/screens/sources_page.dart';
+import 'package:liveapps/screens/apps_page.dart';
+import 'package:liveapps/screens/settings_page.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -24,7 +24,6 @@ class MainTabScaffold extends StatelessWidget {
     return CupertinoTabScaffold(
       tabBar: CupertinoTabBar(
         height: 60,
-        currentIndex: 1,
         items: [
           BottomNavigationBarItem(
             icon: Icon(Ionicons.planet_outline),

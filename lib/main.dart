@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
-import 'app.dart';
+import 'package:liveapps/app.dart';
 
-import 'database_helper.dart';
+import 'package:liveapps/database_helper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

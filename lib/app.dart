@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:ionicons/ionicons.dart';
 import 'screens/sources_page.dart';
-import 'screens/library_page.dart';
+import 'screens/apps_page.dart';
 import 'screens/settings_page.dart';
 
 class MyApp extends StatelessWidget {
@@ -24,14 +24,15 @@ class MainTabScaffold extends StatelessWidget {
     return CupertinoTabScaffold(
       tabBar: CupertinoTabBar(
         height: 60,
+        currentIndex: 1,
         items: [
           BottomNavigationBarItem(
             icon: Icon(Ionicons.planet_outline),
             label: "Sources",
           ),
           BottomNavigationBarItem(
-            icon: Icon(Ionicons.book_outline),
-            label: "Library",
+            icon: Icon(Ionicons.apps_outline),
+            label: "Apps",
           ),
           BottomNavigationBarItem(
             icon: Icon(Ionicons.settings_outline),
@@ -44,11 +45,11 @@ class MainTabScaffold extends StatelessWidget {
           case 0:
             return const SourcesPage();
           case 1:
-            return const LibraryPage();
+            return const AppsPage();
           case 2:
             return const SettingsPage();
           default:
-            return const LibraryPage();
+            return const AppsPage();
         }
       },
     );

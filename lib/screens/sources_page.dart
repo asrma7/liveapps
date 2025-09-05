@@ -1,5 +1,11 @@
 import 'package:flutter/cupertino.dart';
+import 'package:liveapps/screens/add_source_page.dart';
 import '../widgets/search_bar.dart';
+import 'package:liveapps/models/source.dart';
+import 'package:liveapps/database_helper.dart';
+import 'package:liveapps/models/app.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class SourcesPage extends StatefulWidget {
   const SourcesPage({super.key});
@@ -9,75 +15,23 @@ class SourcesPage extends StatefulWidget {
 }
 
 class _SourcesPageState extends State<SourcesPage> {
-  final TextEditingController _urlController = TextEditingController();
-
-  // Dummy data for repositories
-  List<Map<String, String>> sources = [
-    {
-      "iconUrl": "https://repo.cypwn.xyz/assets/images/cypwn_small.png",
-      "name": "CyPwn IPA Library",
-      "sourceURL": "https://ipa.cypwn.xyz/cypwn.json",
-    },
-    {
-      "iconUrl":
-          "https://apptesters.org/wp-content/uploads/2024/04/AppTesters-Logo-Site-Icon.webp",
-      "name": "AppTesters IPA Repo",
-      "sourceURL": "https://repository.apptesters.org/",
-    },
-  ];
-
-  void _showAddSourceDialog() {
-    showCupertinoDialog(
-      context: context,
-      builder: (context) {
-        return CupertinoAlertDialog(
-          title: const Text('Add Source URL'),
-          content: Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: CupertinoTextField(
-              controller: _urlController,
-              placeholder: 'Enter Repository URL',
-              keyboardType: TextInputType.url,
-              autocorrect: false,
-              autofocus: true,
-            ),
-          ),
-          actions: [
-            CupertinoDialogAction(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _urlController.clear();
-              },
-              child: const Text('Cancel'),
-            ),
-            CupertinoDialogAction(
-              onPressed: () {
-                final url = _urlController.text.trim();
-                if (url.isNotEmpty) {
-                  setState(() {
-                    sources.add({
-                      "iconUrl":
-                          "https://repo.cypwn.xyz/assets/images/cypwn_small.png",
-                      "name": "New Repo",
-                      "sourceURL": url,
-                    });
-                  });
-                }
-                Navigator.of(context).pop();
-                _urlController.clear();
-              },
-              child: const Text('Add'),
-            ),
-          ],
-        );
-      },
-    );
-  }
+  List<Source> sources = [];
+  bool isLoading = true;
 
   @override
-  void dispose() {
-    _urlController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    fetchSources();
+  }
+
+  Future<void> fetchSources() async {
+    final dbSources = await DatabaseHelper().database.then(
+      (db) => db.query('sources'),
+    );
+    setState(() {
+      sources = dbSources.map((e) => Source.fromMap(e)).toList();
+      isLoading = false;
+    });
   }
 
   @override
@@ -90,7 +44,85 @@ class _SourcesPageState extends State<SourcesPage> {
         ),
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
-          onPressed: _showAddSourceDialog,
+          onPressed: () async {
+            final url = await Navigator.push(
+              context,
+              CupertinoSheetRoute(builder: (context) => const AddSourcePage()),
+            );
+            if (url != null && url is String && url.isNotEmpty) {
+              try {
+                final response = await http.get(Uri.parse(url));
+                if (response.statusCode == 200) {
+                  final data = json.decode(response.body);
+                  final newSource = Source(
+                    name: data['name'] ?? 'Unknown',
+                    identifier: data['identifier'] ?? url,
+                    subtitle: data['subtitle'] ?? '',
+                    sourceURL: url,
+                    iconURL: data['iconURL'] ?? '',
+                    website: data['website'] ?? '',
+                  );
+                  final db = await DatabaseHelper().database;
+                  final sourceId = await db.insert(
+                    'sources',
+                    newSource.toMap(),
+                  );
+                  if (data['apps'] != null && data['apps'] is List) {
+                    for (final appData in data['apps']) {
+                      final app = App(
+                        sourceId: sourceId,
+                        name: appData['name'] ?? '',
+                        bundleIdentifier: appData['bundleIdentifier'] ?? '',
+                        version: appData['version'] ?? '',
+                        versionDate: appData['versionDate'] ?? '',
+                        downloadURL: appData['downloadURL'] ?? '',
+                        localizedDescription:
+                            appData['localizedDescription'] ?? '',
+                        iconURL: appData['iconURL'] ?? '',
+                        size: appData['size'] ?? 0,
+                      );
+                      await db.insert('apps', app.toMap());
+                    }
+                  }
+                  await fetchSources();
+                } else {
+                  if (context.mounted) {
+                    showCupertinoDialog(
+                      context: context,
+                      builder: (_) => CupertinoAlertDialog(
+                        title: const Text('Error'),
+                        content: Text(
+                          'Failed to fetch source data (status ${response.statusCode})',
+                        ),
+                        actions: [
+                          CupertinoDialogAction(
+                            child: const Text('OK'),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  showCupertinoDialog(
+                    context: context,
+                    builder: (_) => CupertinoAlertDialog(
+                      title: const Text('Error'),
+                      content: Text('Failed to fetch or parse source data.'),
+                      actions: [
+                        CupertinoDialogAction(
+                          child: const Text('OK'),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+              }
+            }
+          },
           child: const Icon(CupertinoIcons.add),
         ),
         border: null,
@@ -104,43 +136,70 @@ class _SourcesPageState extends State<SourcesPage> {
                 padding: EdgeInsets.all(8.0),
                 child: AppSearchBar(),
               ),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 8.0,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Repositories',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      sources.length.toString(),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        color: CupertinoColors.systemGrey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               Expanded(
-                child: CupertinoScrollbar(
-                  child: ListView.builder(
-                    itemCount: sources.length,
-                    itemBuilder: (context, index) {
-                      final source = sources[index];
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        child: CupertinoListTile(
-                          leading: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              source["iconUrl"]!,
-                              width: 40,
-                              height: 40,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          title: Text(source["name"]!),
-                          subtitle: Text(
-                            source["sourceURL"]!,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: CupertinoColors.systemGrey,
-                            ),
-                          ),
-                          onTap: () {
-                            // Optional: handle tap on repository
+                child: isLoading
+                    ? const Center(child: CupertinoActivityIndicator())
+                    : CupertinoScrollbar(
+                        child: ListView.builder(
+                          itemCount: sources.length,
+                          itemBuilder: (context, index) {
+                            final source = sources[index];
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              child: CupertinoListTile(
+                                leading: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    source.iconURL,
+                                    width: 40,
+                                    height: 40,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                                title: Text(source.name),
+                                subtitle: Text(
+                                  source.sourceURL,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: CupertinoColors.systemGrey,
+                                  ),
+                                ),
+                                onTap: () {
+                                  // handle tap if needed
+                                },
+                              ),
+                            );
                           },
                         ),
-                      );
-                    },
-                  ),
-                ),
+                      ),
               ),
             ],
           ),

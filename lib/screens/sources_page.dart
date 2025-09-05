@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:liveapps/screens/add_source_page.dart';
 import 'package:liveapps/models/source.dart';
 import 'package:liveapps/database_helper.dart';
-import 'package:liveapps/screens/source_apps_page.dart';
+import 'package:liveapps/screens/apps_page.dart';
 import 'package:provider/provider.dart';
 import 'package:liveapps/notifiers/apps_notifier.dart';
 import 'package:liveapps/models/app.dart';
@@ -262,8 +262,7 @@ class _SourcesPageState extends State<SourcesPage> {
                         onTap: () => Navigator.push(
                           context,
                           CupertinoPageRoute(
-                            builder: (context) =>
-                                SourceAppsPage(source: source),
+                            builder: (context) => AppsPage(source: source),
                           ),
                         ),
                       ),
@@ -292,6 +291,7 @@ class _SearchBarDelegate extends SliverPersistentHeaderDelegate {
     bool overlapsContent,
   ) {
     return Container(
+      height: maxExtent,
       color: CupertinoColors.systemBackground.resolveFrom(context),
       padding: const EdgeInsets.all(8.0),
       child: CupertinoSearchTextField(

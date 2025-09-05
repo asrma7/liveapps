@@ -66,16 +66,15 @@ class DatabaseHelper {
 
   Future<List<Map<String, dynamic>>> getApps() async {
     final db = await database;
-    return await db.query('apps');
-  }
 
-  Future<List<Map<String, dynamic>>> getAppsBySource(int sourceId) async {
-    final db = await database;
-    return await db.query(
-      'apps',
-      where: 'source_id = ?',
-      whereArgs: [sourceId],
-    );
+    // Using INNER JOIN to get iconURL from source table
+    final result = await db.rawQuery('''
+    SELECT a.*, s.iconURL AS sourceIconURL
+    FROM apps a
+    INNER JOIN sources s ON a.source_id = s.id
+  ''');
+
+    return result;
   }
 
   Future<int> deleteAllApps() async {

@@ -42,8 +42,8 @@ dependencies:
   dio: ^5.9.0
   path_provider: ^2.1.5
   url_launcher: ^6.3.2
-  file_picker: ^10.3.2
   shared_preferences: ^2.5.3
+  file_picker: ^10.3.2
 
 dev_dependencies:
   flutter_test:

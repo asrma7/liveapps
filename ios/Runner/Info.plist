@@ -16,6 +16,12 @@
 	<string>liveapps</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
+	<key>NSDocumentPickerUsageDescription</key>
+	<string>This app needs folder access to read files.</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>

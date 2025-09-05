@@ -50,6 +50,9 @@ class _SettingsPageState extends State<SettingsPage> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Card(
+                          color: CupertinoColors.systemBackground.resolveFrom(
+                            context,
+                          ),
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: Column(
@@ -61,20 +64,35 @@ class _SettingsPageState extends State<SettingsPage> {
                                 ),
                                 const Text(
                                   'Made with ❤️ by Ashutosh',
-                                  style: TextStyle(fontSize: 16),
+                                  style: TextStyle(
+                                    color: CupertinoColors.systemGrey,
+                                    fontSize: 16,
+                                  ),
                                 ),
                                 const SizedBox(height: 10),
                                 const Text(
                                   'Version 1.0.0',
-                                  style: TextStyle(fontSize: 14),
+                                  style: TextStyle(
+                                    color: CupertinoColors.systemGrey,
+                                    fontSize: 14,
+                                  ),
                                 ),
                                 const SizedBox(height: 10),
                                 const Text(
                                   'This app is open source. Check it out on GitHub!',
-                                  style: TextStyle(fontSize: 14),
+                                  style: TextStyle(
+                                    color: CupertinoColors.systemGrey,
+                                    fontSize: 14,
+                                  ),
                                 ),
                                 const SizedBox(height: 10),
                                 ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: CupertinoColors
+                                        .systemBackground
+                                        .resolveFrom(context),
+                                    foregroundColor: CupertinoColors.systemGrey,
+                                  ),
                                   onPressed: () {
                                     // Open GitHub link https://github.com/asrma7/liveapps
                                     url_launcher.launchUrl(
@@ -98,16 +116,24 @@ class _SettingsPageState extends State<SettingsPage> {
                         ),
                         const SizedBox(height: 20),
                         Card(
+                          color: CupertinoColors.systemBackground.resolveFrom(
+                            context,
+                          ),
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: Row(
                               children: [
-                                const Text("Live Container App Path:"),
+                                const Text(
+                                  "Live Container App Path:",
+                                  style: TextStyle(
+                                    color: CupertinoColors.systemGrey,
+                                  ),
+                                ),
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: GestureDetector(
                                     onTap: () async {
-                                      String? result = await FilePicker.platform
+                                      final result = await FilePicker.platform
                                           .getDirectoryPath();
                                       if (result != null) {
                                         await prefs.setString(
@@ -117,6 +143,26 @@ class _SettingsPageState extends State<SettingsPage> {
                                         setState(() {
                                           liveContainerAppPath = result;
                                         });
+                                      } else {
+                                        showCupertinoDialog(
+                                          context: context,
+                                          builder: (context) {
+                                            return CupertinoAlertDialog(
+                                              title: const Text("Error"),
+                                              content: const Text(
+                                                "Failed to pick folder",
+                                              ),
+                                              actions: [
+                                                CupertinoDialogAction(
+                                                  onPressed: () {
+                                                    Navigator.of(context).pop();
+                                                  },
+                                                  child: const Text("OK"),
+                                                ),
+                                              ],
+                                            );
+                                          },
+                                        );
                                       }
                                     },
                                     child: Tooltip(
@@ -125,9 +171,10 @@ class _SettingsPageState extends State<SettingsPage> {
                                         liveContainerAppPath,
                                         textAlign: TextAlign.end,
                                         style: TextStyle(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.primary,
+                                          color:
+                                              liveContainerAppPath == 'Not Set'
+                                              ? Colors.red
+                                              : CupertinoColors.activeBlue,
                                         ),
                                         overflow: TextOverflow.ellipsis,
                                       ),

@@ -25,8 +25,6 @@ class _AppsPageState extends State<AppsPage> {
   String? liveContainerAppPath;
   bool isReady = false;
 
-  List<AppWithSourceIcon> displayedApps = [];
-
   @override
   void initState() {
     super.initState();
@@ -49,43 +47,7 @@ class _AppsPageState extends State<AppsPage> {
     setState(() {
       this.sortType = sortType;
       this.sortAscending = sortAscending;
-      updateDisplayedApps();
     });
-  }
-
-  void updateDisplayedApps({AppsNotifier? notifier}) {
-    final appsNotifier = notifier ?? context.read<AppsNotifier>();
-    final allApps = widget.source == null
-        ? appsNotifier.apps
-        : appsNotifier.apps
-              .where((app) => app.sourceId == widget.source!.id)
-              .toList();
-
-    final filteredApps = searchQuery.isEmpty
-        ? allApps
-        : allApps
-              .where(
-                (app) =>
-                    app.name.toLowerCase().contains(
-                      searchQuery.toLowerCase(),
-                    ) ||
-                    app.localizedDescription.toLowerCase().contains(
-                      searchQuery.toLowerCase(),
-                    ),
-              )
-              .toList();
-
-    filteredApps.sort((a, b) {
-      int comparison = 0;
-      if (sortType == "name") {
-        comparison = a.name.compareTo(b.name);
-      } else if (sortType == "date" || sortType == "default") {
-        comparison = a.versionDate.compareTo(b.versionDate);
-      }
-      return sortAscending ? comparison : -comparison;
-    });
-
-    displayedApps = filteredApps;
   }
 
   @override
@@ -97,12 +59,39 @@ class _AppsPageState extends State<AppsPage> {
     }
 
     return Consumer<AppsNotifier>(
-      builder: (context, appsNotifier, _) {
-        if (displayedApps.isEmpty) {
-          updateDisplayedApps(notifier: appsNotifier);
-        }
-
+      builder: (context, appsNotifier, child) {
+        final apps = appsNotifier.apps;
         final isLoading = appsNotifier.isLoading;
+        final filteredApps = searchQuery.isEmpty
+            ? apps
+            : apps
+                  .where(
+                    (app) =>
+                        app.name.toLowerCase().contains(
+                          searchQuery.toLowerCase(),
+                        ) ||
+                        app.localizedDescription.toLowerCase().contains(
+                          searchQuery.toLowerCase(),
+                        ),
+                  )
+                  .toList();
+
+        final sortedApps = filteredApps
+          ..sort((a, b) {
+            int comparison = 0;
+            switch (sortType) {
+              case "name":
+                comparison = a.name.compareTo(b.name);
+                break;
+              case "date":
+              case "default":
+                comparison = a.versionDate.compareTo(b.versionDate);
+                break;
+              default:
+                comparison = 0;
+            }
+            return sortAscending ? comparison : -comparison;
+          });
 
         return CupertinoPageScaffold(
           child: CustomScrollView(
@@ -138,7 +127,6 @@ class _AppsPageState extends State<AppsPage> {
                   onChanged: (query) {
                     setState(() {
                       searchQuery = query;
-                      updateDisplayedApps();
                     });
                   },
                 ),
@@ -150,7 +138,7 @@ class _AppsPageState extends State<AppsPage> {
                     vertical: 8.0,
                   ),
                   child: Text(
-                    "${displayedApps.length} Apps",
+                    "${sortedApps.length} Apps",
                     style: const TextStyle(
                       fontSize: 16,
                       color: CupertinoColors.systemGrey,
@@ -164,7 +152,7 @@ class _AppsPageState extends State<AppsPage> {
                     )
                   : SliverList(
                       delegate: SliverChildBuilderDelegate((context, index) {
-                        final app = displayedApps[index];
+                        final app = sortedApps[index];
                         return Padding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
@@ -264,7 +252,7 @@ class _AppsPageState extends State<AppsPage> {
                                   ),
                           ),
                         );
-                      }, childCount: displayedApps.length),
+                      }, childCount: sortedApps.length),
                     ),
             ],
           ),

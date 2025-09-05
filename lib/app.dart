@@ -23,7 +23,6 @@ class MainTabScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     return CupertinoTabScaffold(
       tabBar: CupertinoTabBar(
-        height: 60,
         items: [
           BottomNavigationBarItem(
             icon: Icon(Ionicons.planet_outline),

@@ -12,6 +12,8 @@ class AppsPage extends StatefulWidget {
 
 class _AppsPageState extends State<AppsPage> {
   String searchQuery = "";
+  String sortType = "default";
+  bool sortAscending = true;
 
   @override
   Widget build(BuildContext context) {
@@ -32,6 +34,16 @@ class _AppsPageState extends State<AppsPage> {
                         ),
                   )
                   .toList();
+        final sortedApps = filteredApps
+          ..sort((a, b) {
+            int comparison = 0;
+            if (sortType == "name") {
+              comparison = a.name.compareTo(b.name);
+            } else if (sortType == "date") {
+              comparison = a.versionDate.compareTo(b.versionDate);
+            }
+            return sortAscending ? comparison : -comparison;
+          });
         return CupertinoPageScaffold(
           child: CustomScrollView(
             slivers: [
@@ -41,25 +53,74 @@ class _AppsPageState extends State<AppsPage> {
                   actions: <Widget>[
                     CupertinoContextMenuAction(
                       onPressed: () {
-                        appsNotifier.fetchApps();
+                        setState(() {
+                          if (sortType == "default") {
+                            sortType = "default";
+                            sortAscending = !sortAscending;
+                          } else {
+                            sortType = "default";
+                            sortAscending = true;
+                          }
+                        });
                         Navigator.pop(context);
                       },
-                      trailingIcon: CupertinoIcons.chevron_up,
-                      child: const Text("Default"),
+                      child: Row(
+                        children: [
+                          const Text("Default"),
+                          if (sortType == "default")
+                            Icon(
+                              sortAscending
+                                  ? Ionicons.chevron_up_circle_outline
+                                  : Ionicons.chevron_down_circle_outline,
+                              size: 16,
+                              color: CupertinoColors.systemGrey,
+                            ),
+                        ],
+                      ),
                     ),
                     CupertinoContextMenuAction(
                       onPressed: () {
-                        appsNotifier.fetchApps();
+                        setState(() {
+                          sortType = "name";
+                          sortAscending = !sortAscending;
+                        });
                         Navigator.pop(context);
                       },
-                      child: const Text("Name"),
+                      child: Row(
+                        children: [
+                          const Text("Name"),
+                          if (sortType == "name")
+                            Icon(
+                              sortAscending
+                                  ? Ionicons.chevron_up_circle_outline
+                                  : Ionicons.chevron_down_circle_outline,
+                              size: 16,
+                              color: CupertinoColors.systemGrey,
+                            ),
+                        ],
+                      ),
                     ),
                     CupertinoContextMenuAction(
                       onPressed: () {
-                        appsNotifier.fetchApps();
+                        setState(() {
+                          sortType = "date";
+                          sortAscending = !sortAscending;
+                        });
                         Navigator.pop(context);
                       },
-                      child: const Text("Date"),
+                      child: Row(
+                        children: [
+                          const Text("Date"),
+                          if (sortType == "date")
+                            Icon(
+                              sortAscending
+                                  ? Ionicons.chevron_up_circle_outline
+                                  : Ionicons.chevron_down_circle_outline,
+                              size: 16,
+                              color: CupertinoColors.systemGrey,
+                            ),
+                        ],
+                      ),
                     ),
                   ],
                   child: const Icon(
@@ -87,7 +148,7 @@ class _AppsPageState extends State<AppsPage> {
                     vertical: 8.0,
                   ),
                   child: Text(
-                    "${filteredApps.length} Apps",
+                    "${sortedApps.length} Apps",
                     style: const TextStyle(
                       fontSize: 16,
                       color: CupertinoColors.systemGrey,
@@ -102,7 +163,7 @@ class _AppsPageState extends State<AppsPage> {
                     )
                   : SliverList(
                       delegate: SliverChildBuilderDelegate((context, index) {
-                        final app = filteredApps[index];
+                        final app = sortedApps[index];
                         return Padding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
@@ -151,7 +212,7 @@ class _AppsPageState extends State<AppsPage> {
                             ),
                           ),
                         );
-                      }, childCount: filteredApps.length),
+                      }, childCount: sortedApps.length),
                     ),
             ],
           ),

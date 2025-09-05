@@ -66,7 +66,7 @@ class DatabaseHelper {
 
   Future<List<Map<String, dynamic>>> getApps() async {
     final db = await database;
-    return await db.query('apps', orderBy: 'versionDate DESC');
+    return await db.query('apps');
   }
 
   Future<List<Map<String, dynamic>>> getAppsBySource(int sourceId) async {
@@ -75,7 +75,6 @@ class DatabaseHelper {
       'apps',
       where: 'source_id = ?',
       whereArgs: [sourceId],
-      orderBy: 'versionDate DESC',
     );
   }
 

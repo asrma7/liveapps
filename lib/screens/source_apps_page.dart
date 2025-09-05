@@ -1,8 +1,11 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:liveapps/models/source.dart';
 import 'package:liveapps/models/app.dart';
 import 'package:liveapps/database_helper.dart';
+import 'package:path_provider/path_provider.dart';
 
 class SourceAppsPage extends StatefulWidget {
   final Source source;
@@ -14,6 +17,7 @@ class SourceAppsPage extends StatefulWidget {
 
 class _SourceAppsPageState extends State<SourceAppsPage> {
   List<App> apps = [];
+  Map<int, double> downloadProgress = {};
   bool isLoading = true;
   String searchQuery = "";
   String sortType = "default";
@@ -53,7 +57,7 @@ class _SourceAppsPageState extends State<SourceAppsPage> {
         int comparison = 0;
         if (sortType == "name") {
           comparison = a.name.compareTo(b.name);
-        } else if (sortType == "date") {
+        } else if (sortType == "date" || sortType == "default") {
           comparison = a.versionDate.compareTo(b.versionDate);
         }
         return sortAscending ? comparison : -comparison;
@@ -79,6 +83,7 @@ class _SourceAppsPageState extends State<SourceAppsPage> {
                     Navigator.pop(context);
                   },
                   child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text("Default"),
                       if (sortType == "default")
@@ -101,6 +106,7 @@ class _SourceAppsPageState extends State<SourceAppsPage> {
                     Navigator.pop(context);
                   },
                   child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text("Name"),
                       if (sortType == "name")
@@ -123,6 +129,7 @@ class _SourceAppsPageState extends State<SourceAppsPage> {
                     Navigator.pop(context);
                   },
                   child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text("Date"),
                       if (sortType == "date")
@@ -211,17 +218,91 @@ class _SourceAppsPageState extends State<SourceAppsPage> {
                             ),
                           ],
                         ),
-                        trailing: CupertinoButton(
-                          padding: EdgeInsets.zero,
-                          onPressed: () {
-                            // Handle download action
-                          },
-                          child: Icon(
-                            Ionicons.download_outline,
-                            size: 24,
-                            color: CupertinoColors.activeBlue,
-                          ),
-                        ),
+                        trailing:
+                            downloadProgress[app.id ?? index] != null &&
+                                downloadProgress[app.id ?? index]! < 1.0
+                            ? SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  value: downloadProgress[app.id ?? index],
+                                  strokeWidth: 2.5,
+                                ),
+                              )
+                            : CupertinoButton(
+                                padding: EdgeInsets.zero,
+                                onPressed: () async {
+                                  final url = app.downloadURL;
+                                  final fileName = url.split('/').last;
+                                  final key = app.id ?? index;
+                                  setState(() {
+                                    downloadProgress[key] = 0.0;
+                                  });
+                                  try {
+                                    final dir =
+                                        await getApplicationDocumentsDirectory();
+                                    final savePath = '${dir.path}/$fileName';
+                                    await Dio().download(
+                                      url,
+                                      savePath,
+                                      onReceiveProgress: (received, total) {
+                                        if (total != -1) {
+                                          setState(() {
+                                            downloadProgress[key] =
+                                                received / total;
+                                          });
+                                        }
+                                      },
+                                    );
+                                    setState(() {
+                                      downloadProgress.remove(key);
+                                    });
+                                    if (context.mounted) {
+                                      showCupertinoDialog(
+                                        context: context,
+                                        builder: (_) => CupertinoAlertDialog(
+                                          title: const Text(
+                                            'Download Complete',
+                                          ),
+                                          content: Text('Saved to $savePath'),
+                                          actions: [
+                                            CupertinoDialogAction(
+                                              child: const Text('OK'),
+                                              onPressed: () =>
+                                                  Navigator.pop(context),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    setState(() {
+                                      downloadProgress.remove(key);
+                                    });
+                                    if (context.mounted) {
+                                      showCupertinoDialog(
+                                        context: context,
+                                        builder: (_) => CupertinoAlertDialog(
+                                          title: const Text('Download Failed'),
+                                          content: Text(e.toString()),
+                                          actions: [
+                                            CupertinoDialogAction(
+                                              child: const Text('OK'),
+                                              onPressed: () =>
+                                                  Navigator.pop(context),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                                child: Icon(
+                                  Ionicons.download_outline,
+                                  size: 24,
+                                  color: CupertinoColors.activeBlue,
+                                ),
+                              ),
                       ),
                     );
                   }, childCount: sortedApps.length),

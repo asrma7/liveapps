@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:provider/provider.dart';
 import 'package:liveapps/notifiers/apps_notifier.dart';
@@ -42,7 +43,7 @@ class _AppsPageState extends State<AppsPage> {
             int comparison = 0;
             if (sortType == "name") {
               comparison = a.name.compareTo(b.name);
-            } else if (sortType == "date") {
+            } else if (sortType == "date" || sortType == "default") {
               comparison = a.versionDate.compareTo(b.versionDate);
             }
             return sortAscending ? comparison : -comparison;
@@ -211,7 +212,10 @@ class _AppsPageState extends State<AppsPage> {
                                 ? SizedBox(
                                     width: 24,
                                     height: 24,
-                                    child: CupertinoActivityIndicator(),
+                                    child: CircularProgressIndicator(
+                                      value: downloadProgress[app.id ?? index],
+                                      strokeWidth: 2.5,
+                                    ),
                                   )
                                 : CupertinoButton(
                                     padding: EdgeInsets.zero,

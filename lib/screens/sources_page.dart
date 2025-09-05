@@ -2,11 +2,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:liveapps/screens/add_source_page.dart';
 import 'package:liveapps/models/source.dart';
 import 'package:liveapps/database_helper.dart';
+import 'package:liveapps/screens/source_apps_page.dart';
+import 'package:provider/provider.dart';
+import 'package:liveapps/notifiers/apps_notifier.dart';
 import 'package:liveapps/models/app.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
-import 'package:liveapps/widgets/search_bar_delegate.dart';
 
 class SourcesPage extends StatefulWidget {
   const SourcesPage({super.key});
@@ -19,6 +20,7 @@ class _SourcesPageState extends State<SourcesPage> {
   List<Source> sources = [];
   bool isLoading = true;
   bool isAddingSource = false;
+  String searchQuery = "";
 
   @override
   void initState() {
@@ -38,10 +40,22 @@ class _SourcesPageState extends State<SourcesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final filteredSources = searchQuery.isEmpty
+        ? sources
+        : sources
+              .where(
+                (source) =>
+                    source.name.toLowerCase().contains(
+                      searchQuery.toLowerCase(),
+                    ) ||
+                    source.sourceURL.toLowerCase().contains(
+                      searchQuery.toLowerCase(),
+                    ),
+              )
+              .toList();
     return CupertinoPageScaffold(
       child: CustomScrollView(
         slivers: [
-          /// Sliver navigation bar (collapses/hides on scroll)
           CupertinoSliverNavigationBar(
             largeTitle: const Text("Sources"),
             trailing: CupertinoButton(
@@ -54,6 +68,25 @@ class _SourcesPageState extends State<SourcesPage> {
                   ),
                 );
                 if (url != null && url is String && url.isNotEmpty) {
+                  final alreadyExists = sources.any((s) => s.sourceURL == url);
+                  if (alreadyExists) {
+                    if (context.mounted) {
+                      showCupertinoDialog(
+                        context: context,
+                        builder: (_) => CupertinoAlertDialog(
+                          title: const Text('Duplicate Source'),
+                          content: const Text('This source already exists.'),
+                          actions: [
+                            CupertinoDialogAction(
+                              child: const Text('OK'),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    return;
+                  }
                   setState(() {
                     isLoading = true;
                     isAddingSource = true;
@@ -91,6 +124,15 @@ class _SourcesPageState extends State<SourcesPage> {
                           );
                           await db.insert('apps', app.toMap());
                         }
+                      }
+                      if (context.mounted) {
+                        try {
+                          final provider = Provider.of<AppsNotifier>(
+                            context,
+                            listen: false,
+                          );
+                          await provider.refreshApps();
+                        } catch (_) {}
                       }
                     } else {
                       if (context.mounted) {
@@ -137,18 +179,27 @@ class _SourcesPageState extends State<SourcesPage> {
                   }
                 }
               },
-              child: Icon(
-                isAddingSource ? CupertinoIcons.refresh : CupertinoIcons.add,
-                color: CupertinoColors.activeBlue,
-              ),
+              child: isAddingSource
+                  ? const CupertinoActivityIndicator()
+                  : const Icon(
+                      CupertinoIcons.add,
+                      color: CupertinoColors.activeBlue,
+                    ),
             ),
             border: null,
           ),
 
-          /// Pinned search bar
-          SliverPersistentHeader(pinned: true, delegate: SearchBarDelegate()),
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: _SearchBarDelegate(
+              onChanged: (query) {
+                setState(() {
+                  searchQuery = query;
+                });
+              },
+            ),
+          ),
 
-          /// "Repositories" header + count
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(
@@ -163,7 +214,7 @@ class _SourcesPageState extends State<SourcesPage> {
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   ),
                   Text(
-                    sources.length.toString(),
+                    filteredSources.length.toString(),
                     style: const TextStyle(
                       fontSize: 18,
                       color: CupertinoColors.systemGrey,
@@ -174,14 +225,13 @@ class _SourcesPageState extends State<SourcesPage> {
             ),
           ),
 
-          /// List of sources
           isLoading
               ? const SliverFillRemaining(
                   child: Center(child: CupertinoActivityIndicator()),
                 )
               : SliverList(
                   delegate: SliverChildBuilderDelegate((context, index) {
-                    final source = sources[index];
+                    final source = filteredSources[index];
                     return Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
@@ -205,12 +255,53 @@ class _SourcesPageState extends State<SourcesPage> {
                             color: CupertinoColors.systemGrey,
                           ),
                         ),
+                        trailing: const Icon(
+                          CupertinoIcons.chevron_forward,
+                          color: CupertinoColors.systemGrey,
+                        ),
+                        onTap: () => Navigator.push(
+                          context,
+                          CupertinoPageRoute(
+                            builder: (context) =>
+                                SourceAppsPage(source: source),
+                          ),
+                        ),
                       ),
                     );
-                  }, childCount: sources.length),
+                  }, childCount: filteredSources.length),
                 ),
         ],
       ),
     );
   }
+}
+
+class _SearchBarDelegate extends SliverPersistentHeaderDelegate {
+  final ValueChanged<String> onChanged;
+  _SearchBarDelegate({required this.onChanged});
+
+  @override
+  double get minExtent => 60;
+  @override
+  double get maxExtent => 60;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(
+      color: CupertinoColors.systemBackground.resolveFrom(context),
+      padding: const EdgeInsets.all(8.0),
+      child: CupertinoSearchTextField(
+        placeholder: "Search",
+        onChanged: onChanged,
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) =>
+      false;
 }

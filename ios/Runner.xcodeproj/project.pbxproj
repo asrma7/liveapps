@@ -14,6 +14,7 @@
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
+		C554798C2E6C0A6B00DF2A32 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = C554798B2E6C0A6B00DF2A32 /* ZIPFoundation */; };
 		ED882E61F69AFE1B5521BEC4 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 79C682FEC2766B28760917E6 /* Pods_Runner.framework */; };
 		FF6BD0A7F9C52C075CAF2667 /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F25CED85CB97DA33A503791E /* Pods_RunnerTests.framework */; };
 /* End PBXBuildFile section */
@@ -81,6 +82,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				ED882E61F69AFE1B5521BEC4 /* Pods_Runner.framework in Frameworks */,
+				C554798C2E6C0A6B00DF2A32 /* ZIPFoundation in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -161,7 +163,6 @@
 				518073BAE34797889B648324 /* Pods-RunnerTests.release.xcconfig */,
 				42CC5A6650F85375F94341D8 /* Pods-RunnerTests.profile.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -238,6 +239,9 @@
 				Base,
 			);
 			mainGroup = 97C146E51CF9000F007C117D;
+			packageReferences = (
+				C554798A2E6C0A6B00DF2A32 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
+			);
 			productRefGroup = 97C146EF1CF9000F007C117D /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -723,6 +727,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		C554798A2E6C0A6B00DF2A32 /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/weichsel/ZIPFoundation.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.9.19;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C554798B2E6C0A6B00DF2A32 /* ZIPFoundation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C554798A2E6C0A6B00DF2A32 /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
+			productName = ZIPFoundation;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 97C146E61CF9000F007C117D /* Project object */;
 }

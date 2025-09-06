@@ -1,8 +1,10 @@
+import 'dart:developer';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:ionicons/ionicons.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 
 class SettingsPage extends StatefulWidget {
@@ -13,23 +15,31 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  late SharedPreferences prefs;
+  static const platform = MethodChannel("example.startAccessingToSharedStorage");
   bool isLoading = true;
   late String liveContainerAppPath;
 
   @override
   void initState() {
     super.initState();
-    fetchPreferences();
+    _getLiveContainerAppPath();
   }
 
-  void fetchPreferences() async {
-    prefs = await SharedPreferences.getInstance();
-    setState(() {
-      liveContainerAppPath =
-          prefs.getString('live_container_app_path') ?? 'Not Set';
-      isLoading = false;
-    });
+  Future<void> _getLiveContainerAppPath() async {
+    try {
+      final String result = await platform.invokeMethod("getWritableFilePath", {
+        "fileName": "live.txt"
+      });
+      setState(() {
+        liveContainerAppPath = result;
+        isLoading = false;
+      });
+    } on PlatformException catch (e) {
+      log("Error: '${e.message}'.");
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   @override
@@ -94,7 +104,6 @@ class _SettingsPageState extends State<SettingsPage> {
                                     foregroundColor: CupertinoColors.systemGrey,
                                   ),
                                   onPressed: () {
-                                    // Open GitHub link https://github.com/asrma7/liveapps
                                     url_launcher.launchUrl(
                                       Uri.parse(
                                         'https://github.com/asrma7/liveapps',
@@ -133,15 +142,14 @@ class _SettingsPageState extends State<SettingsPage> {
                                 Expanded(
                                   child: GestureDetector(
                                     onTap: () async {
-                                      final result = await FilePicker.platform
+                                      final folder = await FilePicker.platform
                                           .getDirectoryPath();
-                                      if (result != null) {
-                                        await prefs.setString(
-                                          'live_container_app_path',
-                                          result,
+                                      if (folder != null) {
+                                        await platform.invokeMethod(
+                                          "saveSharedFolder", {"url": folder}
                                         );
                                         setState(() {
-                                          liveContainerAppPath = result;
+                                          liveContainerAppPath = folder;
                                         });
                                       } else {
                                         showCupertinoDialog(

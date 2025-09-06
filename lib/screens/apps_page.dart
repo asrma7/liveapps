@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:liveapps/models/app.dart';
 import 'package:liveapps/models/source.dart';
@@ -22,8 +23,10 @@ class _AppsPageState extends State<AppsPage> {
   String searchQuery = "";
   late String sortType;
   late bool sortAscending;
-  String? liveContainerAppPath;
   bool isReady = false;
+  static const platform = MethodChannel(
+    "example.startAccessingToSharedStorage",
+  );
 
   @override
   void initState() {
@@ -36,7 +39,6 @@ class _AppsPageState extends State<AppsPage> {
     setState(() {
       sortType = prefs.getString('sort_type') ?? "default";
       sortAscending = prefs.getBool('sort_ascending') ?? false;
-      liveContainerAppPath = prefs.getString('live_container_app_path');
       isReady = true;
     });
   }
@@ -292,41 +294,60 @@ class _AppsPageState extends State<AppsPage> {
       downloadProgress[key] = 0.0;
     });
     try {
-      if (liveContainerAppPath == null) {
-        throw Exception("Live Container app path is not set.");
-      }
-      final savePath = "${liveContainerAppPath!}/$fileName".replaceAll(
-        '.ipa',
-        '.zip',
-      );
-      await Dio().download(
-        url,
-        savePath,
-        onReceiveProgress: (received, total) {
-          if (total != -1) {
-            setState(() {
-              downloadProgress[key] = received / total;
-            });
-          }
-        },
-      );
-      setState(() {
-        downloadProgress.remove(key);
-      });
-      if (context.mounted) {
-        showCupertinoDialog(
-          context: context,
-          builder: (_) => CupertinoAlertDialog(
-            title: const Text('Download Complete'),
-            content: Text('Saved to $savePath'),
-            actions: [
-              CupertinoDialogAction(
-                child: const Text('OK'),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
-          ),
+      String? savePath;
+      try {
+        savePath = await platform.invokeMethod("getWritableFilePath", {
+          "fileName": fileName,
+        });
+      } on PlatformException catch (e) {
+        if (e.code == "NO_FOLDER") {
+          throw Exception(
+            "Live Container app path not set. Please set it in settings.",
+          );
+        }
+
+        if (savePath == null) {
+          throw Exception("Failed to get writable file path");
+        }
+
+        await Dio().download(
+          url,
+          savePath,
+          onReceiveProgress: (received, total) {
+            if (total != -1) {
+              setState(() {
+                downloadProgress[key] = received / total;
+              });
+            }
+          },
         );
+
+        final extractedPath = await platform.invokeMethod("extractIpaAtPath", {
+          "ipaPath": savePath,
+        });
+        if (extractedPath == null) {
+          throw Exception("Failed to extract IPA");
+        }
+
+        setState(() {
+          downloadProgress.remove(key);
+        });
+
+        if (context.mounted) {
+          showCupertinoDialog(
+            context: context,
+            builder: (_) => CupertinoAlertDialog(
+              title: const Text('Download Complete'),
+              content: Text('App extracted to: $extractedPath'),
+              actions: [
+                CupertinoDialogAction(
+                  child: const Text('OK'),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          );
+        }
       }
     } catch (e) {
       setState(() {
